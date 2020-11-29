@@ -1,0 +1,490 @@
+require 'csv'
+require 'set'
+require 'date'
+require 'time'
+
+# processing data from Stanford Open Policing Project data:
+# https://openpolicing.stanford.edu/data/
+
+# My email: avg.ganshina@gmail.com
+# My Linkedin: https://www.linkedin.com/in/anastasiia-ganshina-69b8a2183/
+
+def questions_from_user(filename)
+    
+    headers = Array.new
+    headers = CSV.foreach(filename).first 
+
+    for title in headers
+
+        if title.eql?("subject_race")
+            puts ("If you want to know all races in the dataset, type in: all races") #all_race
+            puts ("If you want to know least popular race, type in: least popular race") #least_popular_race  
+            puts ("If you want to know most popular percentage, type in: most popular percentage race") #max_pecrentage_race           
+        elsif title.eql?("subject_age")
+            puts ("If you want to know minimum age, type in: minimum age") #age_mikn
+            puts ("If you want to know maximum age, type in: maximum age") #age_max
+            puts ("If you want to know median age, type in: median age") # age_median
+        end
+
+    end    
+
+    return "Please type in something that you want to know"   
+end
+
+def answers_to_user(filename, question)
+
+    if question.eql?("all races") 
+        answer = all_race(filename)
+    elsif question.eql?("least popular race") 
+        answer = least_popular_race(filename)
+    elsif question.eql?("most popular percentage race") 
+        answer = max_pecrentage_race(filename)
+    elsif question.eql?("minimum age") 
+        answer = age_min(filename)
+    elsif question.eql?("maximum age") 
+        answer = age_max(filename)
+    elsif question.eql?("median age") 
+        answer = age_median(filename)
+    else
+        answer = "You probably mistyped it"
+    end
+
+    return answer
+
+end
+
+def user_predictions()
+
+    puts "Now, make your prediction. What is the most targeted persons age?"
+
+    target_age = gets.strip
+
+    puts "Now, make your prediction. What is the most targeted persons race?"
+
+    target_race = gets.strip
+
+    puts "Now, make your prediction. What is the most targeted persons sex?"
+
+    target_sex = gets.strip
+
+    puts "Your prediction for age is #{target_age}, your prediction for race is #{target_race}, your prediction for sex is #{target_sex}"
+end
+
+def actual_results(filename)
+    headers = Array.new
+    headers = CSV.foreach(filename).first 
+
+    age = "no data"
+    race = "no data"
+    sex = "no data"
+
+    for title in headers
+        if title.eql?("subject_race")
+            race = targeted_race(filename)
+        elsif title.eql?("subject_age")
+            age = targeted_age(filename)
+        elsif title.eql?("subject_sex")
+            sex = targeted_sex(filename)
+        end
+    end
+
+    puts "Actual target person's age is #{age}, race is #{race}, and sex is #{sex}"
+
+end
+
+def all_stats(filename)
+    headers = Array.new
+    headers = CSV.foreach(filename).first 
+
+    for title in headers
+        if title.eql?("subject_race")
+            race_stats(filename)
+        elsif title.eql?("subject_age")
+            age_stats(filename)
+        elsif title.eql?("subject_sex")
+            sex_stats(filename)
+        end
+
+    end
+
+end
+
+#########################################################
+########## premissions to run the program ###############
+
+def ask_questions?(filename)
+    
+    puts "Would you like two ask three questions before your prediction? (yes/no)"
+    user_answer = gets.strip
+
+    if user_answer.eql?("yes")
+        i = 0
+        
+        while i<3 # user may know the answers to 3 questions
+            questions_from_user(filename)
+
+            if i == 0
+                puts "Ypu can ask 3 questions before your prediction"
+                question = gets.strip
+            elsif i == 1
+                puts "Ypu can ask 2 questions before your prediction"
+                question = gets.strip
+            elsif i == 2
+                puts "Ypu can ask 1 questions before your prediction"
+                question = gets.strip
+            end
+                if answers_to_user(filename, question).eql?("You probably mistyped it")
+                puts answers_to_user(filename, question)
+            else
+                i = i + 1
+                puts answers_to_user(filename, question)
+            end
+
+        end
+
+    elsif user_answer.eql?("no")
+        puts "Sounds good!"
+    else
+        puts "Sorry, I do not know what #{user_answer} means, could you try again?"
+        ask_questions?()
+    end
+
+end
+
+def all_stats?(filename)
+    
+    puts "Would you like to know the whole statistics for age, sex and race in this state?"
+    user_answer = gets.strip
+
+    if user_answer.eql?("yes")
+        all_stats(filename)
+    elsif user_answer.eql?("no")
+        puts "Sounds good!"
+    else
+        puts "Sorry, I do not know what #{user_answer} means, could you try again?"
+        ask_questions?()
+    end
+
+end
+###################################################################
+####################### race information ##########################
+
+def all_race(filename) 
+    
+    result = Array.new
+
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+
+        if row != nil
+            result << row['subject_race']
+        end
+
+    end
+
+    return result.uniq!
+
+end
+
+def least_popular_race(filename) 
+    
+    result = Array.new
+    
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+
+        if row != nil
+            result << row['subject_race']  
+        end
+
+    end
+
+    races = Array.new
+
+    white = (result.count("white").to_f/result.length.to_f*100)
+    black = (result.count("black").to_f/result.length.to_f*100)
+    hispanic = (result.count("hispanic").to_f/result.length.to_f*100)
+    asian = (result.count("asian/pacific islander").to_f/result.length.to_f*100)
+
+    if races.min == white
+        return "while"
+    elsif races.min == black
+        return "black"
+    elsif races.min == hispanic
+        return "hispanic"
+    else
+        return "asian"
+    end
+
+end
+
+def max_pecrentage_race(filename) 
+    
+    result = Array.new
+    
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        result << row['subject_race']
+    end
+
+    races = Array.new
+
+    races << (result.count("white").to_f/result.length.to_f*100)
+    races << (result.count("black").to_f/result.length.to_f*100)
+    races << (result.count("hispanic").to_f/result.length.to_f*100)
+    races << (result.count("asian/pacific islander").to_f/result.length.to_f*100)
+
+    return races.max
+end
+
+###################################################################
+#################### age information ##############################
+
+def age_min(filename) 
+    
+    result = Array.new
+
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        if not row['subject_age'].eql?("NA")
+            result << row['subject_age']
+        end
+    end
+
+    return result.min
+
+end
+
+def age_max(filename)
+    
+    result = Array.new
+
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        if not row['subject_age'].eql?("NA")
+             result << row['subject_age']
+        end
+    end
+
+    return result.max
+
+end
+
+def age_median(filename)
+    result = Array.new
+    
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        if not row['subject_age'].eql?("NA")
+            result << row['subject_age']
+        end
+    end
+
+    return result[result.length/2]
+
+end
+
+###################################################################
+################## targeted person information ####################
+
+def targeted_age(filename)
+    
+    result = Array.new
+    sum = 0
+    
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        
+        if not row['subject_age'].eql?("NA")
+             result << row['subject_age']
+             sum = sum + row['subject_age']
+        end            
+    end
+
+    return sum/result.length
+
+end
+
+def targeted_race(filename)
+    
+    result = Array.new
+    
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        result << row['subject_race']
+    end
+
+    if result.count("black").to_f > result.count("while").to_f and result.count("black").to_f > result.count("hispanic").to_f 
+            targeted_race = "black"
+    elsif result.count("white").to_f > result.count("black").to_f and result.count("white").to_f > result.count("hispanic").to_f 
+            targeted_race = "while"
+    elsif result.count("hispanic").to_f > result.count("black").to_f and result.count("hispanic").to_f > result.count("whote").to_f 
+            targeted_race = "hispanic"
+    end
+
+end 
+
+def targeted_sex(filename)
+    
+    result = Array.new
+    
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        result << row['subject_sex']
+    end
+        
+        if result.count("female").to_f > result.count("male").to_f
+            targeted_sex = "female"
+        else
+            targeted_sex = "male"
+        end
+        
+        return targeted_sex
+
+end
+
+###################################################################
+#################### all stats information ########################
+
+def sex_stats(filename)
+    
+    result = Array.new
+
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        result << row['subject_sex']
+    end
+        
+    puts "Sex: The percentage of females stoped is #{result.count("female").to_f/result.length.to_f*100}, the percentage of males is #{result.count("male").to_f/result.length.to_f*100}"
+
+end
+
+def age_stats(filename)
+    
+    arr = Array.new
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        if not row['subject_age'].eql?("NA")
+             arr << row['subject_age']
+        end
+    end
+        
+    if arr.length != 0  
+        sum = 0
+        for i in arr
+            sum = sum + i
+        end
+        puts "Age: maximum age is #{arr.max}, minimum age is #{arr.min}, mean age is #{sum/arr.length}, and median age is #{arr.sort![arr.length/2]}" 
+    end
+
+end
+
+def race_stats(filename)
+    
+    arr = Array.new
+    CSV.foreach(filename, headers: true, converters: %i[numeric date]) do |row|
+        arr << row['subject_race']
+    end
+        
+    if arr.length != 0  
+        sum = 0
+        white = 0
+        black = 0
+        hispanic = 0
+        for i in arr
+            sum = sum + 1
+            if i.eql?("white")
+                white = white + 1
+            elsif i.eql?("black")
+                black = black + 1
+            elsif i.eql?("hispanic")
+                hispanic = hispanic + 1
+            end
+        end
+        puts "Race: the percentage of white is #{white.to_f/sum}, the percentage of black is is #{black.to_f/sum}, the percentage of his is #{hispanic.to_f/sum}" 
+    end
+
+end
+ 
+####################################################################
+######################## Runing program ############################
+
+if __FILE__ == $0
+
+    puts "What state would you like to talk about?"
+    user_answer = gets.strip
+
+    if user_answer.eql?("arizona")
+        state = 'az_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("california")
+        state = 'ca_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("colorado")
+        state = 'co_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("connecticut")
+        state = 'ct_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("florida")
+        state = 'fl_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("georgia")
+        state = 'ga_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("iowa")
+        state = 'ia_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("illinois")
+        state = 'il_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("massachusetts")
+        state = 'ma_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("maryland")
+        state = 'md_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("michigan")
+        state = 'mi_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("missouri")
+        state = 'mo_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("mississippi")
+        state = 'ms_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("montana")
+        state = 'mt_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("north carolina")
+        state = 'nc_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("north dakota")
+        state = 'nd_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("nebraska")
+        state = 'ne_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("new hampshire")
+        state = 'nh_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("new jersey")
+        state = 'nj_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("nevada")
+        state = 'nv_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("new york")
+        state = 'ny_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("ohio")
+        state = 'oh_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("oregon")
+        state = 'or_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("south carolina")
+        state = 'sc_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("south dakota")
+        state = 'sd_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("tennessee")
+        state = 'tn_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("texas")
+        state = 'tx_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("virginia")
+        state = 'va_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("vermont")
+        state = 'vt_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("washington")
+        state = 'wa_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("wisconsin")
+        state = 'wi_statewide_2020_04_01.csv'
+    elsif user_answer.eql?("wyoming")
+        state = 'wy_statewide_2020_04_01.csv'
+    else
+        print "Unfotunately, no data was found for this state"
+    end    
+
+    # took from stack overflow
+    csv_table = CSV.read(state, :headers => true) # deleting all tables that are not useful for the program -> efficiency
+    keep = ['subject_sex', 'subject_age', 'subject_race']
+    
+    new_csv_table = csv_table.by_col!.delete_if do |column_name,column_values|
+        !keep.include? column_name
+    end
+
+    new_csv_table.to_csv
+    # end of stack overflow
+
+    ask_questions?(state)
+    user_predictions()
+    actual_results(state)
+    all_stats?(state)
+
+end
